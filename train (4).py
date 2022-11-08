@@ -5,7 +5,6 @@ from os.path import isdir
 from torch import nn
 from torch import optim
 from torchvision import datasets, transforms, models
-
 def arg_parser():
     parser = argparse.ArgumentParser(description="Train.py")
     parser.add_argument('--arch', dest="arch", action="store", default="vgg16", type = str)
@@ -16,21 +15,15 @@ def arg_parser():
     parser.add_argument('--gpu', dest="gpu", action="store", default="gpu")
     args = parser.parse_args()
     return args
-
-
-
 def train_transformer(train_dir):
-   train_transforms = transforms.Compose([transforms.RandomRotation(30),
-                                       transforms.RandomResizedCrop(224),
+    train_transforms = transforms.Compose([transforms.RandomRotation(30), 
+                                        transforms.RandomResizedCrop(224),
                                        transforms.RandomHorizontalFlip(),
                                        transforms.ToTensor(),
-                                       transforms.Normalize([0.485, 0.456, 0.406], 
-                                                            [0.229, 0.224, 0.225])])
-    train_data = datasets.ImageFolder(train_dir,                       transform=train_transforms)
+                                       transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
+    
+    train_data = datasets.ImageFolder(train_dir, transform=train_transforms)
     return train_data
-
-
-
 def test_transformer(test_dir):
     test_transforms = transforms.Compose([transforms.Resize(256),
                                       transforms.CenterCrop(224),
@@ -40,18 +33,12 @@ def test_transformer(test_dir):
     test_data = datasets.ImageFolder(test_dir, transform=test_transforms)
     return test_data
     
-
 def data_loader(data, train=True):
     if train: 
         loader = torch.utils.data.DataLoader(data, batch_size=50, shuffle=True)
     else: 
         loader = torch.utils.data.DataLoader(data, batch_size=50)
     return loader
-
-
-
-
-
 def check_gpu(gpu_arg):
     if not gpu_arg:
         return torch.device("cpu")
@@ -62,23 +49,17 @@ def check_gpu(gpu_arg):
     if device == "cpu":
         print("CUDA was not found on device, using CPU instead.")
     return device
-
-
 def primaryloader_model(architecture="vgg16"):
-    
-    
-        model = models.vgg16(pretrained=True)
-        model.name = "vgg16"
+    model = models.vgg16(pretrained=True)
+    model.name = "vgg16"
         
     for param in model.parameters():
         param.requires_grad = False 
+        
     return model
-
-
 def initial_classifier(model, hidden_units):
     #Used OrderedDict to preserve the order in which the keys are inserted
     from collections import OrderedDict
-
     classifier = nn.Sequential(OrderedDict([
                 ('inputs', nn.Linear(25088, 120)), #hidden layer 1 sets output to 120
                 ('relu1', nn.ReLU()),
@@ -89,12 +70,8 @@ def initial_classifier(model, hidden_units):
                 ('relu3',nn.ReLU()),
                 ('hidden_layer3',nn.Linear(70,102)),#output size = 102
                 ('output', nn.LogSoftmax(dim=1))]))# For using NLLLoss()
-
     model.classifier = classifier
     return classifier
-
-
-
 def validation(model, testloader, criterion, device):
     test_loss = 0
     accuracy = 0
@@ -110,10 +87,6 @@ def validation(model, testloader, criterion, device):
         equality = (labels.data == ps.max(dim=1)[1])
         accuracy += equality.type(torch.FloatTensor).mean()
     return test_loss, accuracy
-
-
-
-
 def network_trainer(Model, Trainloader, Testloader, Device, 
                   Criterion, Optimizer, Epochs, Print_every, Steps):
     
@@ -122,7 +95,6 @@ def network_trainer(Model, Trainloader, Testloader, Device,
         print("Number of Epochs specificed as 12.")    
  
     print("Training process initializing .....\n")
-
     # Train Model
     for e in range(Epochs):
         running_loss = 0
@@ -145,7 +117,6 @@ def network_trainer(Model, Trainloader, Testloader, Device,
         
             if steps % print_every == 0:
                 model.eval()
-
                 with torch.no_grad():
                     valid_loss, accuracy = validation(model, validloader, criterion)
             
@@ -156,11 +127,7 @@ def network_trainer(Model, Trainloader, Testloader, Device,
             
                 running_loss = 0
                 model.train()
-
     return Model
-
-
-
 #Function validate_model(Model, Testloader, Device) validate the above model on test data images
 def validate_model(Model, Testloader, Device):
    # Do validation on the test set
@@ -174,10 +141,8 @@ def validate_model(Model, Testloader, Device):
             _, predicted = torch.max(outputs.data, 1)
             total += labels.size(0)
             correct += (predicted == labels).sum().item()
-
     print('Accuracy on test images is: %d%%' % (100 * correct / total))
     
-
 # Function initial_checkpoint(Model, Save_Dir, Train_data) saves the model at a defined checkpoint
 def initial_checkpoint(Model, Save_Dir, Train_data):
        
@@ -187,7 +152,7 @@ def initial_checkpoint(Model, Save_Dir, Train_data):
     else:
         if isdir(Save_Dir):
             model.class_to_idx = image_datasets['train'].class_to_idx
-torch.save({'structure' :'alexnet',
+            torch.save({'structure' :'alexnet',
             'hidden_layer1':120,
              'droupout':0.5,
              'epochs':12,
@@ -205,10 +170,8 @@ torch.save({'structure' :'alexnet',
             
             # Save checkpoint
             torch.save(checkpoint, 'my_checkpoint.pth')
-
         else: 
             print("Directory not found, model will not be saved.")
-
 def main():
      
     # Get Keyword Args for Training
