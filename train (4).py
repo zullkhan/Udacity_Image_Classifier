@@ -87,8 +87,8 @@ def validation(model, testloader, criterion, device):
         equality = (labels.data == ps.max(dim=1)[1])
         accuracy += equality.type(torch.FloatTensor).mean()
     return test_loss, accuracy
-def network_trainer(Model, Trainloader, Testloader, Device, 
-                  Criterion, Optimizer, Epochs, Print_every, Steps):
+def network_trainer(model, Trainloader, Testloader, Device, 
+                  Criterion,Validloader, Optimizer, Epochs, Print_every, Steps):
     
     if type(Epochs) == type(None):
         Epochs = 12
@@ -98,10 +98,11 @@ def network_trainer(Model, Trainloader, Testloader, Device,
     # Train Model
     for e in range(Epochs):
         running_loss = 0
-        Model.train() 
+        steps=0
+        model.train() 
         
         for ii, (inputs, labels) in enumerate(Trainloader):
-            Steps += 1
+            steps += 1
             
             inputs, labels = inputs.to(Device), labels.to(Device)
             
@@ -109,7 +110,7 @@ def network_trainer(Model, Trainloader, Testloader, Device,
             
             # Forward and backward passes
             outputs = model.forward(inputs)
-            loss = criterion(outputs, labels)
+            loss = Criterion(outputs, labels)
             loss.backward()
             optimizer.step()
         
@@ -118,7 +119,7 @@ def network_trainer(Model, Trainloader, Testloader, Device,
             if steps % print_every == 0:
                 model.eval()
                 with torch.no_grad():
-                    valid_loss, accuracy = validation(model, validloader, criterion)
+                    valid_loss, accuracy = validation(model, validloader, Criterion)
             
                 print("Epoch: {}/{} | ".format(e+1, epochs),
                      "Training Loss: {:.4f} | ".format(running_loss/print_every),
@@ -127,9 +128,9 @@ def network_trainer(Model, Trainloader, Testloader, Device,
             
                 running_loss = 0
                 model.train()
-    return Model
+    return model
 #Function validate_model(Model, Testloader, Device) validate the above model on test data images
-def validate_model(Model, Testloader, Device):
+def validate_model(model, Testloader, Device):
    # Do validation on the test set
     correct,total = 0,0
     with torch.no_grad():
@@ -144,7 +145,7 @@ def validate_model(Model, Testloader, Device):
     print('Accuracy on test images is: %d%%' % (100 * correct / total))
     
 # Function initial_checkpoint(Model, Save_Dir, Train_data) saves the model at a defined checkpoint
-def initial_checkpoint(Model, Save_Dir, Train_data):
+def initial_checkpoint(model, Save_Dir, Train_data):
        
     # Save model at checkpoint
     if type(Save_Dir) == type(None):
@@ -160,13 +161,13 @@ def initial_checkpoint(Model, Save_Dir, Train_data):
              'class_to_idx':model.class_to_idx,
              'optimizer_dict':optimizer.state_dict()},
              'checkpoint.pth')
-            Model.class_to_idx = Train_data.class_to_idx
+            model.class_to_idx = Train_data.class_to_idx
             
             # Create checkpoint dictionary
-            checkpoint = {'architecture': Model.name,
-                          'classifier': Model.classifier,
-                          'class_to_idx': Model.class_to_idx,
-                          'state_dict': Model.state_dict()}
+            checkpoint = {'architecture': model.name,
+                          'classifier': model.classifier,
+                          'class_to_idx': model.class_to_idx,
+                          'state_dict': model.state_dict()}
             
             # Save checkpoint
             torch.save(checkpoint, 'my_checkpoint.pth')
@@ -178,7 +179,7 @@ def main():
     args = arg_parser()
     
     # Set directory for training
-    data_dir = 'flowers'
+    data_dir = 'ImageClassifier/flowers'
     train_dir = data_dir + '/train'
     valid_dir = data_dir + '/valid'
     test_dir = data_dir + '/test'
@@ -211,7 +212,7 @@ def main():
     print_every = 30
     steps = 0
     
-    trained_model = network_trainer(model, trainloader, validloader,device, criterion, optimizer, args.epochs, print_every, steps)
+    trained_model = network_trainer(model, trainloader, validloader, device, testloader, criterion, optimizer, args.epochs, print_every, steps)
     
     print("\nTraining process is completed!!")
     
@@ -219,4 +220,3 @@ def main():
    
     initial_checkpoint(trained_model, args.save_dir, train_data)
 if __name__ == '__main__': main()
-   
